@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin WiFi - Manajemen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        .sidebar-item.active { background-color: #eff6ff; color: #2563eb; border-right: 4px solid #2563eb; }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="min-h-screen flex overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r hidden md:flex flex-col h-screen shadow-sm z-20 flex-shrink-0">
+        <div class="p-6 border-b">
+            <h1 class="text-xl font-black text-blue-600 flex items-center gap-2">
+                <i data-lucide="shield-check"></i> WiFi Admin
+            </h1>
+        </div>
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+            <button onclick="switchTab('transactions')" id="tab-transactions-btn" class="sidebar-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-blue-600 bg-blue-50 border-r-4 border-blue-600">
+                <i data-lucide="list-ordered" class="w-5 h-5"></i> Transaksi
+            </button>
+            <button onclick="switchTab('settings')" id="tab-settings-btn" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-all border-r-4 border-transparent">
+                <i data-lucide="map-pin" class="w-5 h-5"></i> Wilayah & Paket
+            </button>
+        </nav>
+        <div class="p-4 border-t">
+            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Version Final 1.0</p>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-screen relative overflow-hidden">
+        <header class="bg-white border-b p-6 flex justify-between items-center z-10 shadow-sm flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <button onclick="document.querySelector('aside').classList.toggle('hidden')" class="md:hidden p-2 text-gray-500 bg-gray-100 rounded-lg">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+                <h2 id="page-title" class="text-xl font-bold text-gray-800">Daftar Transaksi Masuk</h2>
+            </div>
+            <div class="flex items-center gap-4 bg-green-50 px-4 py-2 rounded-full border border-green-100">
+                <span class="flex h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse"></span>
+                <p class="text-xs font-bold text-green-700 uppercase tracking-widest hidden sm:block">Online</p>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto relative">
+            <!-- TRANSAKSI -->
+            <section id="view-transactions" class="p-6 space-y-4">
+                <div id="transaction-list" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="col-span-full py-20 text-center text-gray-400 italic">Memuat data...</div>
+                </div>
+            </section>
+
+            <!-- PENGATURAN -->
+            <section id="view-settings" class="hidden p-6 animate-in fade-in duration-300">
+                <div class="bg-white rounded-3xl border p-6 shadow-sm">
+                    <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8 border-b pb-6">
+                        <div>
+                            <h3 class="font-black text-2xl text-gray-800">Manajemen Wilayah & Paket</h3>
+                        </div>
+                        <button onclick="addRegion()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-200 transition-all">
+                            <i data-lucide="plus" class="w-5 h-5"></i> Tambah Wilayah
+                        </button>
+                    </div>
+                    <div id="regions-container" class="space-y-6"></div>
+                    <div class="mt-8 pt-6 border-t border-gray-100">
+                        <button onclick="saveSettings()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-xl transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="save" class="w-5 h-5"></i> Simpan Pengaturan
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal Gambar -->
+    <div id="modal-image" class="hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 cursor-zoom-out" onclick="this.classList.add('hidden')">
+        <div class="bg-white p-2 rounded-2xl relative max-w-4xl w-full" onclick="event.stopPropagation()">
+            <button onclick="document.getElementById('modal-image').classList.add('hidden')" class="absolute -top-4 -right-4 bg-red-500 text-white p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <img id="full-image" src="" class="w-full h-auto max-h-[85vh] object-contain rounded-xl">
+        </div>
+    </div>
+
+    <!-- UI Scripts -->
+    <script>
+        window.switchTab = (tab) => {
+            document.getElementById('view-transactions').classList.add('hidden');
+            document.getElementById('view-settings').classList.add('hidden');
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            
+            document.getElementById('tab-transactions-btn').className = "sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-gray-500 border-r-4 border-transparent";
+            document.getElementById('tab-settings-btn').className = "sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-gray-500 border-r-4 border-transparent";
+            
+            const activeBtn = document.getElementById(`tab-${tab}-btn`);
+            activeBtn.className = "sidebar-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-blue-600 bg-blue-50 border-r-4 border-blue-600";
+            
+            document.getElementById('page-title').innerText = tab === 'transactions' ? 'Daftar Transaksi' : 'Pengaturan Wilayah';
+            if(window.innerWidth < 768) document.querySelector('aside').classList.add('hidden');
+        };
+
+        window.viewImage = (base64) => {
+            if (!base64 || base64 === 'undefined') return alert("Tidak ada gambar.");
+            document.getElementById('full-image').src = base64; 
+            document.getElementById('modal-image').classList.remove('hidden'); 
+        };
+    </script>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
+        import { getFirestore, doc, setDoc, getDoc, collection, query, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js';
+
+        // =================================================================
+        // MASUKKAN FIREBASE CONFIG ANDA DI BAWAH INI
+        // =================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAG0Hvd_63itgiOXP4GBjgQG4MhkbWXedc",
+  authDomain: "wifi-pay.firebaseapp.com",
+  projectId: "wifi-pay",
+  storageBucket: "wifi-pay.firebasestorage.app",
+  messagingSenderId: "678974524617",
+  appId: "1:678974524617:web:908268390ed189362ad118"
+        };
+        // =================================================================
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let user = null;
+        let localSettings = { regions: [] };
+        let transactions = [];
+
+        signInAnonymously(auth).catch(err => console.error(err));
+
+        onAuthStateChanged(auth, (u) => {
+            user = u;
+            if (user) { loadTransactions(); loadSettings(); }
+        });
+        
+        lucide.createIcons();
+
+        function loadTransactions() {
+            if (!user) return;
+            const q = query(collection(db, 'transactions')); // Database path disederhanakan
+            onSnapshot(q, (snapshot) => {
+                const container = document.getElementById('transaction-list');
+                container.innerHTML = '';
+                transactions = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+                if (snapshot.empty) {
+                    container.innerHTML = `<div class="col-span-full py-20 text-center text-gray-500">Belum ada transaksi</div>`;
+                    return;
+                }
+                const data = [...transactions].sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+                data.forEach(tr => {
+                    const time = tr.timestamp ? new Date(tr.timestamp.seconds * 1000).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'}) : 'Baru saja';
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col gap-4";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-black text-gray-900">${tr.wifiName || '-'}</h4><p class="text-[10px] text-blue-600 font-bold uppercase">${tr.idPelanggan || '-'}</p></div>
+                        </div>
+                        <div class="bg-gray-50 rounded-2xl p-4 grid grid-cols-2 gap-y-4 gap-x-2 text-sm border border-gray-100">
+                            <div><p class="text-gray-400 text-[9px] font-black uppercase mb-0.5">Pengirim</p><p class="font-bold">${tr.senderName}</p></div>
+                            <div><p class="text-gray-400 text-[9px] font-black uppercase mb-0.5">Wilayah</p><p class="font-bold">${tr.regionName}</p></div>
+                            <div><p class="text-gray-400 text-[9px] font-black uppercase mb-0.5">Paket</p><p class="font-black text-blue-600">${tr.mbps} Mbps</p></div>
+                            <div><p class="text-gray-400 text-[9px] font-black uppercase mb-0.5">Nominal</p><p class="font-black">Rp ${(tr.amount||0).toLocaleString('id-ID')}</p></div>
+                        </div>
+                        <div class="flex items-center justify-between mt-1">
+                            <span class="text-[10px] text-gray-400 font-medium">${time}</span>
+                            <button onclick="viewImage('${tr.proofImage}')" class="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl font-bold text-xs"><i data-lucide="image" class="w-4 h-4 inline"></i> Cek Bukti</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+                lucide.createIcons();
+            });
+        }
+
+        async function loadSettings() {
+            if (!user) return;
+            const docRef = doc(db, 'config', 'settings'); // Database path disederhanakan
+            try {
+                const snap = await getDoc(docRef);
+                if (snap.exists()) { localSettings = snap.data(); } 
+                else { localSettings = { regions: [] }; }
+                renderRegions();
+            } catch (error) { console.error(error); }
+        }
+
+        function renderRegions() {
+            const container = document.getElementById('regions-container');
+            container.innerHTML = '';
+            if (!localSettings || !localSettings.regions || localSettings.regions.length === 0) {
+                container.innerHTML = `<div class="text-center py-12"><p class="text-slate-600 font-bold">Belum ada wilayah</p></div>`;
+                return;
+            }
+            localSettings.regions.forEach((reg, rIdx) => {
+                const div = document.createElement('div');
+                div.className = "p-6 bg-slate-50 rounded-2xl border border-slate-200 relative mb-4";
+                div.innerHTML = `
+                    <button onclick="removeRegion(${rIdx})" class="absolute top-6 right-6 text-red-500"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                    <div class="mb-6 pr-12">
+                        <label class="text-[10px] font-black text-gray-400 uppercase mb-2 block">Nama Wilayah</label>
+                        <input type="text" value="${reg.name}" onchange="updateRegionName(${rIdx}, this.value)" class="w-full p-4 font-bold rounded-xl border">
+                    </div>
+                    <div id="packages-${rIdx}" class="space-y-3"></div>
+                    <button onclick="addPackage(${rIdx})" class="w-full mt-3 border-2 border-dashed border-blue-200 bg-blue-50 text-blue-600 py-3 rounded-xl text-xs font-bold">Tambah Kecepatan Baru</button>
+                `;
+                container.appendChild(div);
+                renderPackages(rIdx);
+            });
+            lucide.createIcons();
+        }
+
+        function renderPackages(rIdx) {
+            const container = document.getElementById(`packages-${rIdx}`);
+            container.innerHTML = '';
+            localSettings.regions[rIdx].packages.forEach((pkg, pIdx) => {
+                const div = document.createElement('div');
+                div.className = "flex gap-3 items-center bg-white p-3 rounded-xl border";
+                div.innerHTML = `
+                    <div class="flex-1"><label class="text-[8px] text-gray-400 uppercase font-black">Speed (Mbps)</label><input type="number" value="${pkg.mbps}" onchange="updatePackage(${rIdx}, ${pIdx}, 'mbps', this.value)" class="w-full border-none p-1 font-bold text-lg"></div>
+                    <div class="flex-[2]"><label class="text-[8px] text-gray-400 uppercase font-black">Harga (Rp)</label><input type="number" value="${pkg.price}" onchange="updatePackage(${rIdx}, ${pIdx}, 'price', this.value)" class="w-full border-none p-1 font-bold text-lg"></div>
+                    <button onclick="removePackage(${rIdx}, ${pIdx})" class="p-2 text-red-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        window.addRegion = () => { if(!localSettings.regions) localSettings.regions = []; localSettings.regions.push({ name: 'Wilayah Baru', packages: [{ mbps: 20, price: 150000 }] }); renderRegions(); };
+        window.removeRegion = (idx) => { if(confirm("Hapus wilayah ini?")) { localSettings.regions.splice(idx, 1); renderRegions(); } };
+        window.updateRegionName = (idx, val) => localSettings.regions[idx].name = val;
+        window.addPackage = (rIdx) => { localSettings.regions[rIdx].packages.push({ mbps: 0, price: 0 }); renderRegions(); };
+        window.removePackage = (rIdx, pIdx) => { localSettings.regions[rIdx].packages.splice(pIdx, 1); renderRegions(); };
+        window.updatePackage = (rIdx, pIdx, key, val) => { localSettings.regions[rIdx].packages[pIdx][key] = parseInt(val) || 0; };
+        
+        window.saveSettings = async () => { 
+            if (!user) return alert("Belum terhubung ke server."); 
+            try { 
+                const docRef = doc(db, 'config', 'settings');
+                await setDoc(docRef, localSettings); 
+                alert("Berhasil Disimpan!");
+            } catch (err) { alert("Gagal menyimpan. Pastikan config firebase benar dan internet jalan."); } 
+        };
+    </script>
+</body>
+</html>
