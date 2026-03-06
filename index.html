@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WiFi Pay - Portal Pembayaran</title>
+    <meta name="theme-color" content="#2563eb">
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href='data:application/manifest+json,{"name":"WiFi Pay Pembayaran","short_name":"WiFi Pay","start_url":".","display":"standalone","background_color":"#f3f4f6","theme_color":"#2563eb"}'>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Library Pembuat Gambar QR Code -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f3f4f6; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+        }
+        .qris-active { animation: pulse-border 2s infinite; }
+        #dynamic-qris-container { display: flex; justify-content: center; align-items: center; }
+        #dynamic-qris-container img { margin: auto; display: block; border-radius: 8px; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden min-h-[650px] flex flex-col relative pb-12">
+        <header class="p-8 pb-4 text-center">
+            <div class="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white mx-auto mb-4"><i data-lucide="wifi" class="w-8 h-8"></i></div>
+            <h1 class="text-2xl font-black text-gray-800">Pembayaran WiFi</h1>
+        </header>
+
+        <main class="p-8 pt-4 flex-1 overflow-y-auto flex flex-col">
+            <!-- STEP 1: Data Diri -->
+            <div id="step-1" class="space-y-5 flex-1 flex flex-col">
+                <div><label class="text-[10px] font-black text-gray-400 uppercase">Nama WiFi / SSID</label><input type="text" id="wifi-name" class="w-full p-4 bg-gray-50 border rounded-2xl font-bold"></div>
+                <div><label class="text-[10px] font-black text-gray-400 uppercase">ID Pelanggan (Opsional)</label><input type="text" id="cust-id" class="w-full p-4 bg-gray-50 border rounded-2xl font-bold"></div>
+                <div><label class="text-[10px] font-black text-gray-400 uppercase">Nama Rekening Pengirim</label><input type="text" id="sender-name" class="w-full p-4 bg-gray-50 border rounded-2xl font-bold" placeholder="Misal: Budi / GoPay"></div>
+                <div class="mt-auto pt-6"><button onclick="toStep(2)" class="w-full bg-blue-600 text-white font-bold py-5 rounded-2xl">Lanjut Pilih Paket</button></div>
+            </div>
+
+            <!-- STEP 2: Pilih Paket -->
+            <div id="step-2" class="hidden space-y-5 flex-1 flex flex-col">
+                <div>
+                    <label class="text-[10px] font-black text-gray-400 uppercase">Pilih Wilayah Anda</label>
+                    <select id="select-region" onchange="loadPackagesForRegion(this.value)" class="w-full p-4 bg-white border-2 border-blue-100 rounded-2xl font-bold text-blue-800 outline-none"><option value="">-- Menghubungkan ke server... --</option></select>
+                </div>
+                <div class="flex-1"><label class="text-[10px] font-black text-gray-400 uppercase">Pilih Paket Tagihan</label><div id="package-list" class="space-y-3"></div></div>
+                <div class="flex gap-3 pt-6 mt-auto">
+                    <button onclick="toStep(1)" class="flex-1 bg-gray-100 font-bold py-4 rounded-2xl">Kembali</button>
+                    <button id="btn-next-step-2" disabled onclick="toStep(3)" class="flex-[2] bg-blue-600 text-white font-bold py-4 rounded-2xl opacity-50">Lanjut Bayar</button>
+                </div>
+            </div>
+
+            <!-- STEP 3: Pembayaran & Bukti -->
+            <div id="step-3" class="hidden space-y-6 flex-1 flex flex-col">
+                
+                <div class="bg-gray-50 border border-gray-200 rounded-3xl p-5 text-center">
+                    <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3">Scan QRIS Untuk Membayar</p>
+                    
+                    <!-- KOTAK QRIS OTOMATIS -->
+                    <div class="bg-white p-4 rounded-2xl inline-block border-4 border-blue-500 qris-active mb-4 relative min-w-[220px] min-h-[220px] flex items-center justify-center">
+                        <div id="dynamic-qris-container">
+                            <!-- QR Code akan digambar di sini oleh JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-600 text-white py-3 px-6 rounded-2xl mb-2 shadow-lg">
+                        <p class="text-[10px] font-bold uppercase opacity-80 mb-1">Total Tagihan Anda:</p>
+                        <h3 id="display-total" class="text-2xl font-black tracking-wider">Rp 0</h3>
+                    </div>
+                    <p class="text-[10px] text-gray-500 font-bold">* Nominal otomatis terisi di HP Anda setelah scan QRIS.</p>
+                </div>
+
+                <div class="space-y-2 flex-1">
+                    <label class="w-full flex flex-col items-center justify-center p-6 bg-white border-2 border-dashed border-blue-300 hover:bg-blue-50 transition-colors rounded-3xl cursor-pointer">
+                        <div id="upload-icon-container" class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3"><i data-lucide="camera" id="upload-icon" class="w-6 h-6 text-blue-600"></i></div>
+                        <span id="upload-text" class="text-sm font-bold text-blue-600 text-center">Ketuk untuk Mengunggah<br>Bukti Transfer</span>
+                        <input type="file" id="input-image" accept="image/*" class="hidden" onchange="handleImage(this)">
+                    </label>
+                </div>
+                
+                <div class="flex gap-3 mt-auto">
+                    <button onclick="toStep(2)" class="flex-1 bg-gray-100 font-bold py-5 rounded-2xl text-gray-600">Batal</button>
+                    <button id="btn-finish" disabled onclick="submitPayment()" class="flex-[2] bg-green-500 text-white font-bold py-5 rounded-2xl opacity-50 cursor-not-allowed">Kirim Konfirmasi</button>
+                </div>
+            </div>
+        </main>
+
+        <div id="loading" class="hidden absolute inset-0 bg-white/90 z-50 flex flex-col items-center justify-center"><p class="font-black text-blue-800">Memproses Data...</p></div>
+        <div id="view-success" class="hidden absolute inset-0 bg-white z-[60] flex flex-col items-center justify-center p-8 text-center">
+            <h2 class="text-3xl font-black text-gray-800 mb-3">Berhasil!</h2>
+            <p class="text-gray-500 text-sm mb-12">Bukti transfer Anda telah dikirim ke Admin. WiFi Anda akan segera diperpanjang.</p>
+            <button onclick="location.reload()" class="w-full bg-slate-900 text-white font-bold py-5 rounded-2xl">Selesai</button>
+        </div>
+    </div>
+
+    <!-- UI & LORIKA QRIS Scripts -->
+    <script>
+        // Rumus Keamanan Standar Bank Indonesia (CRC16)
+        function crc16(s) {
+            let crc = 0xFFFF;
+            for (let c = 0; c < s.length; c++) {
+                crc ^= s.charCodeAt(c) << 8;
+                for (let i = 0; i < 8; i++) {
+                    if (crc & 0x8000) crc = (crc << 1) ^ 0x1021;
+                    else crc = crc << 1;
+                }
+            }
+            return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+        }
+
+        // Fungsi Rakit Ulang QRIS menyuntikkan nominal tagihan
+        function makeDynamicQris(qris, nominal) {
+            if (!qris) return "";
+            
+            // Hapus kode CRC bawaan di ujung (8 karakter terakhir biasanya "6304XXXX")
+            let step1 = qris.substring(0, qris.length - 8); 
+            
+            // Ubah mode dari QRIS Statis (11) jadi Dinamis (12)
+            step1 = step1.replace("010211", "010212"); 
+            
+            // Format nominal
+            let nomStr = nominal.toString();
+            let tag54 = "54" + nomStr.length.toString().padStart(2, '0') + nomStr;
+            
+            let res = "";
+            // Suntik nominal ke kerangka QRIS
+            if (step1.includes("5802ID")) {
+                res = step1.split("5802ID").join(tag54 + "5802ID") + "6304";
+            } else {
+                res = step1 + tag54 + "6304";
+            }
+            
+            // Generate gembok CRC baru agar valid saat discan
+            return res + crc16(res);
+        }
+
+        window.toStep = (n) => {
+            if (n === 2) {
+                if (!document.getElementById('wifi-name').value || !document.getElementById('sender-name').value) return alert("Silakan lengkapi data terlebih dahulu!");
+            }
+            
+            // LOGIKA PEMBUATAN QRIS SAAT MASUK KE LANGKAH 3
+            if (n === 3) {
+                const container = document.getElementById('dynamic-qris-container');
+                container.innerHTML = ""; // Bersihkan QR sebelumnya
+                
+                if(window.globalSettings && window.globalSettings.qrisString && window.selectedPackage) {
+                    const nominalTagihan = window.selectedPackage.price;
+                    
+                    // PROSES PEMBUATAN TEKS QRIS BARU
+                    const stringQrisBaru = makeDynamicQris(window.globalSettings.qrisString, nominalTagihan);
+                    
+                    // Cetak jadi gambar Barcode di HP Pelanggan
+                    new QRCode(container, {
+                        text: stringQrisBaru,
+                        width: 200,
+                        height: 200,
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.M
+                    });
+                } else {
+                    container.innerHTML = "<p class='text-xs text-red-500 font-bold'>Admin belum memasukkan QRIS utama di pengaturan.</p>";
+                }
+            }
+            [1, 2, 3].forEach(s => document.getElementById(`step-${s}`).classList.toggle('hidden', s !== n));
+        };
+
+        window.handleImage = (input) => {
+            if (!input.files[0]) return;
+            // Validasi ukuran < 2MB
+            if(input.files[0].size > 2 * 1024 * 1024) { alert("Ukuran gambar maksimal 2MB."); return; }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                window.proofBase64 = e.target.result;
+                document.getElementById('upload-icon-container').className = "w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-3 ring-4 ring-green-50";
+                document.getElementById('upload-icon').setAttribute('data-lucide', 'check');
+                document.getElementById('upload-icon').classList.replace('text-blue-600', 'text-green-600');
+                if (window.lucide) window.lucide.createIcons();
+                
+                document.getElementById('upload-text').innerText = "Bukti Tersimpan";
+                document.getElementById('upload-text').className = "text-sm font-black text-green-700";
+                document.getElementById('btn-finish').disabled = false;
+                document.getElementById('btn-finish').className = "flex-[2] bg-green-600 text-white font-bold py-5 rounded-2xl shadow-lg";
+            };
+            reader.readAsDataURL(input.files[0]);
+        };
+    </script>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
+        import { getFirestore, doc, collection, addDoc, serverTimestamp, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js';
+
+        // =================================================================
+        // MASUKKAN FIREBASE CONFIG ANDA DI SINI (JANGAN LUPA!)
+        // =================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAG0Hvd_63itgiOXP4GBjgQG4MhkbWXedc",
+  authDomain: "wifi-pay.firebaseapp.com",
+  projectId: "wifi-pay",
+  storageBucket: "wifi-pay.firebasestorage.app",
+  messagingSenderId: "678974524617",
+  appId: "1:678974524617:web:908268390ed189362ad118"
+        };
+        // =================================================================
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let user = null;
+        window.globalSettings = null;
+        window.selectedPackage = null;
+        window.selectedRegion = null;
+        window.proofBase64 = null;
+
+        signInAnonymously(auth).catch(err => console.error(err));
+
+        onAuthStateChanged(auth, (u) => {
+            user = u;
+            if (user) listenToRemoteSettings();
+        });
+        lucide.createIcons();
+
+        function listenToRemoteSettings() {
+            if (!user) return;
+            const docRef = doc(db, 'config', 'settings'); 
+            
+            onSnapshot(docRef, (snap) => {
+                const select = document.getElementById('select-region');
+                if (snap.exists() && snap.data().regions) {
+                    window.globalSettings = snap.data();
+                    select.innerHTML = '<option value="">-- Silakan Pilih Wilayah Anda --</option>';
+                    window.globalSettings.regions.forEach((reg, idx) => {
+                        const opt = document.createElement('option');
+                        opt.value = idx; opt.innerText = reg.name;
+                        select.appendChild(opt);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">-- Admin belum mengatur wilayah --</option>';
+                }
+            });
+        }
+
+        window.loadPackagesForRegion = (idx) => {
+            const btnNext = document.getElementById('btn-next-step-2');
+            const container = document.getElementById('package-list');
+
+            if (idx === "") {
+                container.innerHTML = ``; btnNext.disabled = true; btnNext.classList.add('opacity-50'); return;
+            }
+            
+            window.selectedRegion = window.globalSettings.regions[idx];
+            container.innerHTML = '';
+            
+            window.selectedRegion.packages.forEach((pkg) => {
+                const isActive = window.selectedPackage && window.selectedPackage.mbps === pkg.mbps;
+                const card = document.createElement('div');
+                card.onclick = () => {
+                    window.selectedPackage = pkg;
+                    loadPackagesForRegion(idx);
+                    btnNext.disabled = false; btnNext.classList.remove('opacity-50');
+                };
+                card.className = `p-4 rounded-2xl border-2 cursor-pointer flex justify-between items-center ${isActive ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-100 bg-white'}`;
+                card.innerHTML = `
+                    <div><p class="font-black text-gray-800 text-lg">${pkg.mbps} Mbps</p></div>
+                    <div class="text-right"><p class="font-black text-blue-600 text-lg">Rp ${pkg.price.toLocaleString('id-ID')}</p></div>
+                `;
+                container.appendChild(card);
+            });
+            
+            if(window.selectedPackage) {
+                document.getElementById('display-total').innerText = "Rp " + window.selectedPackage.price.toLocaleString('id-ID');
+            }
+        };
+
+        window.submitPayment = async () => {
+            if (!user || !window.proofBase64) return;
+            document.getElementById('loading').classList.remove('hidden');
+            try {
+                const transRef = collection(db, 'transactions'); 
+                await addDoc(transRef, {
+                    wifiName: document.getElementById('wifi-name').value,
+                    idPelanggan: document.getElementById('cust-id').value || '-',
+                    senderName: document.getElementById('sender-name').value,
+                    regionName: window.selectedRegion.name,
+                    mbps: window.selectedPackage.mbps,
+                    amount: window.selectedPackage.price,
+                    proofImage: window.proofBase64,
+                    timestamp: serverTimestamp()
+                });
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('view-success').classList.remove('hidden');
+            } catch (err) { alert("Gagal mengirim data."); }
+        };
+    </script>
+</body>
+</html>
