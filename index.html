@@ -6,7 +6,37 @@
     <title>WiFi Pay - Portal Pembayaran</title>
     <meta name="theme-color" content="#2563eb">
     <!-- PWA Meta Tags -->
-    <link rel="manifest" href='data:application/manifest+json,{"name":"WiFi Pay Pembayaran","short_name":"WiFi Pay","start_url":".","display":"standalone","background_color":"#f3f4f6","theme_color":"#2563eb"}'>
+    <link rel="manifest" href='data:application/manifest+json,{"name":"WiFi Pay Pembayaran",...'>
+
+**Hapus baris itu, dan ganti menjadi ini:**
+```html
+<link rel="manifest" href="manifest.json">
+<!-- Tambahan khusus untuk iPhone (iOS) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WiFi Pay">
+<link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/WiFi_Logo.svg/512px-WiFi_Logo.svg.png">
+
+Simpan (Commit) perubahannya.
+
+---
+
+### Cara Pelanggan Meng-Install Aplikasinya:
+
+Setelah perubahan tersimpan (tunggu 1-2 menit), beri tahu pelanggan Anda cara menginstalnya:
+
+**📱 Untuk Pengguna Android (Chrome):**
+1. Buka link website GitHub Pages Anda di Google Chrome.
+2. Biasanya di bagian bawah layar akan otomatis muncul *pop-up* tulisan **"Tambahkan WiFi Pay ke Layar Utama"** (Add to Home screen). Pelanggan tinggal klik itu.
+3. *Jika tidak muncul otomatis:* Klik ikon titik tiga di pojok kanan atas Chrome, lalu pilih menu **"Instal aplikasi"** (atau "Tambahkan ke Layar Utama").
+
+**🍏 Untuk Pengguna iPhone (Safari):**
+1. Buka link website Anda di browser Safari.
+2. Ketuk ikon **Share (Bagikan)** di bagian bawah tengah layar (ikon kotak dengan panah ke atas).
+3. Geser menu ke bawah dan ketuk **"Tambah ke Layar Utama"** (Add to Home Screen).
+4. Ketuk **"Tambah"** (Add) di pojok kanan atas.
+
+Selesai! Sekarang aplikasi Anda akan muncul di deretan aplikasi HP pelanggan layaknya aplikasi yang di-download dari Play Store atau App Store. Saat dibuka, tampilannya akan penuh (*fullscreen*) tanpa kotak pencarian browser di atasnya!
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
